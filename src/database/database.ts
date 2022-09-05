@@ -1,11 +1,12 @@
-import { Pool } from 'pg';
+import pg from 'pg';
+import dotenv from "dotenv"; 
+
+dotenv.config()
+
+const { Pool } = pg;
 
 const connection = new Pool({
-  user: 'postgres',
-  host: 'localhost',
-  database: 'valex',
-  password: '00150808',
-  port: 5432
+    connectionString: process.env.DATABASE_URL
 })
 
 
