@@ -8,17 +8,26 @@ import dayjs from "dayjs";
 import Cryptr from "cryptr";
 import dotenv from "dotenv";
 import bcrypt from "bcryptjs";
-import { array } from "joi";
-import { BADFLAGS } from "dns";
 
 dotenv.config();
 const cryptr = new Cryptr(process.env.CRRYPTR_SECRET_KEY);
 
-async function getCardById(id: number) {
+async function validateCardbyId(id: number) {
   const card = await cardRepository.findById(id);
   if (!card) {
     throw { code: "NotFound", message: "Cartão não encontrado" };
   }
+
+  const dateNow: string = dayjs().format("DD/MM/YY");
+  const expirationDate = card.expirationDate.split("/");
+  const expirationDatewithDay = `01/${parseInt(expirationDate[0]) + 1}/${
+    expirationDate[1]
+  }`;
+  const isDateExpired: number = dayjs(dateNow).diff(expirationDatewithDay);
+  if (isDateExpired > 0) {
+    throw { code: "Unauthorized", message: "Cartão expirado" };
+  }
+
   return card;
 }
 
@@ -98,21 +107,12 @@ export async function activateCard(
   securityCode: string,
   password: string
 ) {
-  const card = await getCardById(id);
+  const card = await validateCardbyId(id);
 
   if (card.password !== null) {
     throw { code: "Conflict", message: "Cartão já está ativo" };
   }
 
-  const dateNow: string = dayjs().format("DD/MM/YY");
-  const expirationDate = card.expirationDate.split("/");
-  const expirationDatewithDay = `01/${parseInt(expirationDate[0]) + 1}/${
-    expirationDate[1]
-  }`;
-  const isDateExpired: number = dayjs(dateNow).diff(expirationDatewithDay);
-  if (isDateExpired > 0) {
-    throw { code: "Unauthorized", message: "Cartão expirado" };
-  }
   const securityCodeDescrypted: string = cryptr.decrypt(card.securityCode);
 
   if (
@@ -129,7 +129,7 @@ export async function activateCard(
 }
 
 export async function cardBalance(id: number) {
-  const card = await getCardById(id);
+  await validateCardbyId(id);
 
   const payments = await paymentRepository.findByCardId(id);
   const rechargesNoFormat = await rechargeRepository.findByCardId(id);
@@ -153,4 +153,28 @@ export async function cardBalance(id: number) {
   console.log(transactions);
 
   return { balance, transactions, recharges };
+}
+
+export async function blockAndUnblockCard(id:number, password:string, action:string){
+  const card = await validateCardbyId(id);
+
+  const checkPassword = bcrypt.compareSync(password, card.password);
+
+  if(!checkPassword){
+    throw { code : "Unauthorized", message: "Senha incorreta"}
+  }
+
+  if (action === 'block') {
+    if(card.isBlocked===true){
+      throw {code:"Conflict", message:" Cartão já bloqueado"}
+    }
+    return await cardRepository.update(id, {isBlocked:true})
+  }
+
+  if( action === "unblock"){
+    if(card.isBlocked === false){
+      throw {code:"Conflict", message: "Cartão já desbloqueado"}
+    }
+    return await cardRepository.update(id, {isBlocked:false})
+  }
 }

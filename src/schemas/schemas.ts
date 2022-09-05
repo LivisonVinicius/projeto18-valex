@@ -16,4 +16,7 @@ export const schemas = {
     securityCode: joi.string().required(),
     password: joi.string().regex(/^\d+$/).length(4).required()
   }),
+  blockAndUnblockCardSchema: joi.object().keys({
+    password: joi.string().regex(/^\d+$/).length(4).required()
+  }),
 };

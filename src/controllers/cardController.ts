@@ -29,3 +29,13 @@ export async function cardBalance(req:Request, res:Response){
 
     res.status(200).send(result)
 }
+
+export async function blockAndUnblockCard(req:Request, res:Response) {
+    const id:number = parseInt (req.params.id)
+    const password:string = req.body.password;
+    const action:string= req.headers.action.toString()
+
+    await cardService.blockAndUnblockCard(id,password, action)
+    
+    res.status(200).send("Ok")
+}
