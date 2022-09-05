@@ -31,6 +31,22 @@ async function validateCardbyId(id: number) {
   return card;
 }
 
+async function isValidAPIKey(api:string) {
+  const company = await companyRepository.findByApiKey(api)
+  
+  if (!company){
+    throw {code: "NotFound", message: "Empresa não encontrada com essa API Key"}
+  }
+}
+
+async function isCardActive(id:number) {
+  const card = await cardRepository.findById(id)
+
+  if(card.password===null){
+    throw {code: "Unauthorized", message: "Cartão não está ativo"};
+  }
+}
+
 export async function newCardInfoValidation(
   id: number,
   api: string,
@@ -42,11 +58,7 @@ export async function newCardInfoValidation(
     throw { code: "NotFound", message: "Funcionário não encontrado" };
   }
 
-  const company = await companyRepository.findByApiKey(api);
-
-  if (!company) {
-    throw { code: "NotFound", message: "Empresa não encontrada" };
-  }
+  await isValidAPIKey(api)
 
   const cardVer = await cardRepository.findByTypeAndEmployeeId(type, id);
 
@@ -130,6 +142,7 @@ export async function activateCard(
 
 export async function cardBalance(id: number) {
   await validateCardbyId(id);
+  await isCardActive(id);
 
   const payments = await paymentRepository.findByCardId(id);
   const rechargesNoFormat = await rechargeRepository.findByCardId(id);
@@ -177,4 +190,10 @@ export async function blockAndUnblockCard(id:number, password:string, action:str
     }
     return await cardRepository.update(id, {isBlocked:false})
   }
+}
+
+export async function rechargeCard(id:number, amount: number, api:string){
+  await isValidAPIKey(api);
+  await isCardActive(id)
+  await rechargeRepository.insert({cardId:id,amount:amount})
 }
