@@ -5,10 +5,15 @@ export const schemas = {
     employeeId: joi.number().required().empty(),
     type: joi
       .string()
-      .valid("groceries", "restaurants", "transport", "education", "health")
+      .valid("groceries", "restaurant", "transport", "education", "health")
       .required(),
   }),
   APIKeySchema: joi.object().keys({
     API_KEY: joi.string().required(),
+  }),
+  activateCard: joi.object().keys({
+    cardId: joi.number().required(),
+    securityCode: joi.string().required(),
+    password: joi.string().regex(/^\d+$/).length(4).required()
   }),
 };

@@ -5,6 +5,7 @@ import { faker } from "@faker-js/faker";
 import dayjs from "dayjs";
 import Cryptr from "cryptr";
 import dotenv from "dotenv";
+import bcrypt from "bcryptjs";
 import { array } from "joi";
 
 dotenv.config();
@@ -55,21 +56,56 @@ export async function createCard(
     )
     .join(" ");
 
-  const date:string [] = dayjs().format('MM/YY').split("/")
-  const expirationDate:string = `${date[0]}/${parseInt(date[1])+5}`
+  const date: string[] = dayjs().format("MM/YY").split("/");
+  const expirationDate: string = `${date[0]}/${parseInt(date[1]) + 5}`;
 
-  const securityCode : string = cryptr.encrypt(faker.finance.creditCardCVV())
+  const securityCode: string = cryptr.encrypt(faker.finance.creditCardCVV());
 
   const cardData = {
-    employeeId:id,
-    number:cardNumber,
+    employeeId: id,
+    number: cardNumber,
     cardholderName,
     securityCode,
     expirationDate,
-    isVirtual:false,
-    isBlocked:true,
-    type
+    isVirtual: false,
+    isBlocked: true,
+    type,
+  };
+
+  const result = await cardRepository.insert(cardData);
+  return {
+    cardId: result.cardId,
+    number: cardNumber,
+    securityCode: cryptr.decrypt(securityCode),
+    expirationDate,
+    type,
+  };
+}
+
+export async function activateCard(id:number, securityCode:string, password:string) {
+  const card  = await cardRepository.findById(id);
+  if(!card){
+    throw{ code : "NotFound" , message: "Cartão não encontrado"}
   }
 
-  await cardRepository.insert(cardData)
+  if(card.password !== null){
+    throw {code: "Conflict", message: "Cartão já está ativo"}
+  }
+
+  const dateNow: string = dayjs().format("DD/MM/YY");
+  const expirationDate = card.expirationDate.split("/")
+  const expirationDatewithDay= `01/${parseInt(expirationDate[0])+1}/${(expirationDate[1])}`;
+  const isDateExpired:number = dayjs(dateNow).diff(expirationDatewithDay)
+  if(isDateExpired>0){
+    throw { code :"Unauthorized", message : "Cartão expirado"}
+  }
+  const securityCodeDescrypted: string= cryptr.decrypt(card.securityCode)
+
+  if(securityCodeDescrypted.length !== 3 || !securityCodeDescrypted || securityCodeDescrypted !== securityCode) {
+    throw { code : "Unauthorized" , message : "Código CVV inválido"}
+  }
+
+  const passwordEncrypted:string = bcrypt.hashSync(password, 10);
+
+  await cardRepository.update(id, {password:passwordEncrypted})
 }

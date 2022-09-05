@@ -7,7 +7,17 @@ export async function createCard(req:Request, res:Response) {
     const type:TransactionTypes = req.body.type
     const { "x-api-key": API_KEY } = req.headers;
 
-    await cardService.createCard(id, API_KEY.toString(), type)
+    const result = await cardService.createCard(id, API_KEY.toString(), type)
 
-    res.status(201).send("Cartão Criado")
+    res.status(201).send(result)
+}
+
+export async function activateCard(req:Request, res:Response){
+    const id:number=req.body.cardId;
+    const securityCode:string = req.body.securityCode;
+    const password:string = req.body.password;
+
+    const result = await cardService.activateCard(id, securityCode, password);
+
+    res.send("Cartão ativado")
 }
