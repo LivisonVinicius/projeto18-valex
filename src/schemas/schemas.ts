@@ -22,4 +22,9 @@ export const schemas = {
   rechargeSchema: joi.object().keys({
     amount: joi.number().greater(0).required()
   }),
+  purchaseSchema: joi.object().keys({
+    password: joi.string().regex(/^\d+$/).length(4).required(),
+    businessId: joi.number().required(),
+    amount: joi.number().greater(0).required()
+  })
 };

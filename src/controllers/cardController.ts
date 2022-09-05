@@ -48,3 +48,14 @@ export async function rechargeCard (req:Request, res:Response){
     await cardService.rechargeCard(id,amount,API_KEY.toString())
     res.status(201).send("Recarga efetuada")
 }
+
+export async function purchase(req:Request, res: Response){
+    const cardId:number= parseInt(req.params.id);
+    const password:string = req.body.password;
+    const businessId:number = parseInt(req.body.businessId);
+    const amount:number = req.body.amount;
+
+
+    await cardService.purchase(cardId,password,businessId, amount)
+    res.status(201).send("Compra efetuada")
+}

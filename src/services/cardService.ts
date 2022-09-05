@@ -3,6 +3,7 @@ import * as employeeRepository from "../repositories/employeeRepository.js";
 import * as companyRepository from "../repositories/companyRepository.js";
 import * as paymentRepository from "../repositories/paymentRepository.js";
 import * as rechargeRepository from "../repositories/rechargeRepository.js";
+import * as businessRepository from "../repositories/businessRepository.js";
 import { faker } from "@faker-js/faker";
 import dayjs from "dayjs";
 import Cryptr from "cryptr";
@@ -163,9 +164,14 @@ export async function cardBalance(id: number) {
     return { ...r, timestamp: dayjs(r.timestamp).format("DD/MM/YYYY") };
   });
 
-  console.log(transactions);
-
   return { balance, transactions, recharges };
+}
+
+async function isBlocked(id:number){
+  const card = await cardRepository.findById(id);
+  if (card.isBlocked === true){
+    throw {code: "Unauthorized", message:"Cartão bloqueado"}
+  }
 }
 
 export async function blockAndUnblockCard(id:number, password:string, action:string){
@@ -195,5 +201,41 @@ export async function blockAndUnblockCard(id:number, password:string, action:str
 export async function rechargeCard(id:number, amount: number, api:string){
   await isValidAPIKey(api);
   await isCardActive(id)
+  await validateCardbyId(id)
   await rechargeRepository.insert({cardId:id,amount:amount})
+}
+
+export async function purchase (cardId:number, password:string , businessId:number, amount: number){
+  const card = await validateCardbyId(cardId);
+  await isCardActive(cardId);
+  await isBlocked(cardId);
+
+  const checkPassword = bcrypt.compareSync(password, card.password);
+  if(!checkPassword){
+    throw {code:"Unauthorized", message:"Senha inválida"}
+  }
+
+  const business=await validateBusiness(businessId, card.type)
+
+  const {balance} = await cardBalance (cardId)
+
+  if(balance-amount<0){
+    throw {code: "Unauthorized " , message: "Saldo insuficiente"}
+  }
+
+  await paymentRepository.insert({cardId:cardId, businessId:businessId,amount:amount})
+}
+
+async function validateBusiness ( id:number , cardType: cardRepository.TransactionTypes){
+  const business = await businessRepository.findById(id)
+
+  if(!business){
+    throw { code: "NotFound", message:"Estabelecimento não encontrado"}
+  }
+
+  if(business.type!== cardType){
+    throw {code: "Unauthorized", message:"Cartão não é aceito pelo estabelecimento"}
+  }
+
+  return business
 }
