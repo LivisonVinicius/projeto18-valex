@@ -110,10 +110,10 @@ export async function cardBalance(id: number) {
   const balance: number = rechargesTotal - paymentsTotal;
 
   const transactions = payments.map((p) => {
-    return { ...p, timestamp: dayjs(p.timestamp).format("DD/MM/YY") };
+    return { ...p, timestamp: dayjs(p.timestamp).format("DD/MM/YYYY") };
   });
   const recharges = rechargesL.map((r) => {
-    return { ...r, timestamp: dayjs(r.timestamp).format("DD/MM/YY") };
+    return { ...r, timestamp: dayjs(r.timestamp).format("DD/MM/YYYY") };
   });
 
   return { balance, transactions, recharges };
