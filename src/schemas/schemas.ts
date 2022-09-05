@@ -1,6 +1,6 @@
 import joi from "joi";
 
-export const schemas = {
+export const cardSchemas = {
   newCardSchema: joi.object().keys({
     employeeId: joi.number().required().empty(),
     type: joi
@@ -14,17 +14,24 @@ export const schemas = {
   activateCard: joi.object().keys({
     cardId: joi.number().required(),
     securityCode: joi.string().required(),
-    password: joi.string().regex(/^\d+$/).length(4).required()
+    password: joi.string().regex(/^\d+$/).length(4).required(),
   }),
   blockAndUnblockCardSchema: joi.object().keys({
-    password: joi.string().regex(/^\d+$/).length(4).required()
+    password: joi.string().regex(/^\d+$/).length(4).required(),
+    action: joi
+      .string()
+      .valid("block","unblock")
+      .required(),
   }),
+};
+
+export const moneySchemas = {
   rechargeSchema: joi.object().keys({
-    amount: joi.number().greater(0).required()
+    amount: joi.number().greater(0).required(),
   }),
   purchaseSchema: joi.object().keys({
     password: joi.string().regex(/^\d+$/).length(4).required(),
     businessId: joi.number().required(),
-    amount: joi.number().greater(0).required()
-  })
+    amount: joi.number().greater(0).required(),
+  }),
 };
