@@ -21,3 +21,11 @@ export async function activateCard(req:Request, res:Response){
 
     res.send("Cartão ativado")
 }
+
+export async function cardBalance(req:Request, res:Response){
+    const id:number = parseInt (req.params.id)
+
+    const result = await cardService.cardBalance(id)
+
+    res.status(200).send(result)
+}
